@@ -348,6 +348,8 @@ def add_osd_character():
         return None
 
     img = bpy.data.images.load(OSD_FILE)
+    img.alpha_mode = 'STRAIGHT'
+    print(f"  Image loaded: {img.name} ({img.size[0]}x{img.size[1]}, channels={img.channels})")
 
     # Create plane with correct aspect ratio
     aspect = img.size[0] / img.size[1] if img.size[1] > 0 else 1.0
@@ -363,7 +365,12 @@ def add_osd_character():
     osd.name = "OSD_Character"
     osd.scale = (plane_width, plane_height, 1)
 
-    # Material with image texture + alpha
+    # Ensure UVs exist and cover full image
+    mesh = osd.data
+    if not mesh.uv_layers:
+        mesh.uv_layers.new(name="UVMap")
+
+    # Material with image texture + alpha (mix shader for reliable EEVEE alpha)
     mat = bpy.data.materials.new("OSD_Mat")
     mat.use_nodes = True
     mat.use_backface_culling = False
@@ -372,19 +379,53 @@ def add_osd_character():
     nodes.clear()
 
     output = nodes.new('ShaderNodeOutputMaterial')
+    output.location = (600, 0)
+
+    # Mix shader: transparent where alpha=0, principled where alpha=1
+    mix = nodes.new('ShaderNodeMixShader')
+    mix.location = (400, 0)
+
+    transparent = nodes.new('ShaderNodeBsdfTransparent')
+    transparent.location = (200, 100)
+
     principled = nodes.new('ShaderNodeBsdfPrincipled')
+    principled.location = (200, -100)
+    principled.inputs['Roughness'].default_value = 0.8
+
     tex_node = nodes.new('ShaderNodeTexImage')
     tex_node.image = img
+    tex_node.location = (-200, 0)
+    tex_node.extension = 'CLIP'
 
+    # Texture -> Base Color
     links.new(tex_node.outputs['Color'], principled.inputs['Base Color'])
-    links.new(tex_node.outputs['Alpha'], principled.inputs['Alpha'])
-    links.new(principled.outputs[0], output.inputs[0])
 
-    # Add subtle emission so character is visible
-    principled.inputs['Emission Color'].default_value = (1.0, 1.0, 1.0, 1.0)
-    principled.inputs['Emission Strength'].default_value = 0.3
+    # Also emit the texture color so character is visible in dark scene
+    links.new(tex_node.outputs['Color'], principled.inputs['Emission Color'])
+    principled.inputs['Emission Strength'].default_value = 0.8
+
+    # Alpha drives mix factor: 0=transparent, 1=principled
+    links.new(tex_node.outputs['Alpha'], mix.inputs['Fac'])
+    links.new(transparent.outputs[0], mix.inputs[1])
+    links.new(principled.outputs[0], mix.inputs[2])
+    links.new(mix.outputs[0], output.inputs['Surface'])
+
+    # Set material alpha blend mode for EEVEE
+    try:
+        mat.surface_render_method = 'BLENDED'
+    except (AttributeError, TypeError):
+        pass
+    try:
+        mat.blend_method = 'BLEND'
+    except (AttributeError, TypeError):
+        pass
+    try:
+        mat.show_transparent_back = True
+    except (AttributeError, TypeError):
+        pass
 
     osd.data.materials.append(mat)
+    print(f"  OSD material assigned: mix shader (transparent + principled + emission)")
 
     # Breathing animation (subtle Y-scale pulse)
     osd.keyframe_insert(data_path="scale", frame=1)
