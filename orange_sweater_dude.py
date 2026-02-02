@@ -61,8 +61,8 @@ from PIL import Image
 # CONFIG
 # ============================================================
 WORLD_SEED     = 7
-DURATION       = 8.0
-FPS            = 24
+DURATION       = 30.0
+FPS            = 30
 OSD_FILE       = "osd_character.png"
 OUTPUT         = "osd_monday.mp4"
 
@@ -158,8 +158,8 @@ AO_MASK = np.linspace(0.0, 0.35, RH).reshape(-1, 1, 1) ** 1.5
 
 # God ray angular masks (6 rays from glow center)
 GOD_RAY_MASKS = []
-for ray_i in range(6):
-    ray_angle = ray_i * (2 * np.pi / 6)
+for ray_i in range(8):
+    ray_angle = ray_i * (2 * np.pi / 8)
     angle_diff = np.abs(ANGLE - ray_angle)
     angle_diff = np.minimum(angle_diff, 2 * np.pi - angle_diff)
     ray_mask = np.clip(1.0 - angle_diff / 0.12, 0, 1)
@@ -411,10 +411,11 @@ def apply_material(rgba, material, tn, phase, prog):
         return result
 
     if material == "lava":
-        # Flowing lava texture
+        # Vectorized flowing lava texture
+        y_range = np.arange(h)
+        waves = (12 * np.sin(2*np.pi*tn*2 + y_range * 0.03)).astype(int)
         for y in range(h):
-            wave = int(12 * math.sin(2*np.pi*tn*2 + y*0.03))
-            result[y] = np.roll(result[y], wave, axis=0)
+            result[y] = np.roll(result[y], waves[y], axis=0)
         alpha_mask = result[:, :, 3] > 0
         result[alpha_mask, 0] = np.minimum(255, result[alpha_mask, 0] + 80)
         result[alpha_mask, 1] = np.minimum(255, result[alpha_mask, 1] + 30)
@@ -441,20 +442,27 @@ def apply_material(rgba, material, tn, phase, prog):
 
     elif material == "dust":
         result[:, :, 3] *= 0.6
+        # Vectorized box blur using cumulative sum
         blur_size = 3
-        padded = np.pad(result[:, :, 3], blur_size//2, mode='edge')
-        blurred = np.zeros_like(result[:, :, 3])
-        for i in range(blur_size):
-            for j in range(blur_size):
-                blurred += padded[i:i+h, j:j+w]
+        pad = blur_size // 2
+        padded = np.pad(result[:, :, 3], pad, mode='edge')
+        # Horizontal pass
+        cs = np.cumsum(padded, axis=1)
+        h_blur = cs[:, blur_size:] - cs[:, :-blur_size]
+        # Vertical pass
+        cs2 = np.cumsum(h_blur, axis=0)
+        blurred = cs2[blur_size:, :] - cs2[:-blur_size, :]
         result[:, :, 3] = blurred / (blur_size * blur_size)
 
     elif material == "pixelated":
         block = 8
-        for y in range(0, h, block):
-            for x in range(0, w, block):
-                block_avg = result[y:y+block, x:x+block].mean(axis=(0, 1))
-                result[y:y+block, x:x+block] = block_avg
+        # Vectorized pixelation via reshape
+        bh = (h // block) * block
+        bw = (w // block) * block
+        cropped = result[:bh, :bw].reshape(h // block, block, w // block, block, 4)
+        block_avg = cropped.mean(axis=(1, 3), keepdims=True)
+        result[:bh, :bw] = block_avg.repeat(block, axis=1).repeat(block, axis=3).reshape(bh, bw, 4)
+        # RGB split
         result[1:, :, 0] = result[:-1, :, 0]
         result[:, 1:, 2] = result[:, :-1, 2]
 
@@ -505,13 +513,12 @@ def apply_material(rgba, material, tn, phase, prog):
     if OSD_RIM_MASK is not None and phase == 'normal':
         rim_h = min(h, OSD_RIM_MASK.shape[0])
         rim_w = min(w, OSD_RIM_MASK.shape[1])
-        rim_strength = OSD_RIM_MASK[:rim_h, :rim_w]
+        rim_strength = OSD_RIM_MASK[:rim_h, :rim_w, np.newaxis]
         pulse = 0.7 + 0.3 * math.sin(2*np.pi*tn*1.5)
-        for c in range(3):
-            result[:rim_h, :rim_w, c] = np.minimum(
-                255,
-                result[:rim_h, :rim_w, c] + rim_strength * 120 * pulse
-            )
+        result[:rim_h, :rim_w, :3] = np.minimum(
+            255,
+            result[:rim_h, :rim_w, :3] + rim_strength * 120 * pulse
+        )
 
     return result
 
@@ -525,36 +532,44 @@ def render_bg_fx(frame, fx_type, tn, wi):
     if fx_type == "meteor_strike":
         mx = int(RW * 0.75 - tn * RW * 0.5)
         my = int(tn * RH * 0.6)
-        for r in range(15, 60, 5):
-            alpha = 0.08 * (1.0 - r/60)
-            for angle in np.linspace(0, 2*np.pi, 24):
-                x = int(mx + r * math.cos(angle))
-                y = int(my + r * math.sin(angle))
-                if 0 <= x < RW and 0 <= y < RH:
-                    frame[y, x] += np.array([255, 120, 40]) * alpha
+        # Vectorized meteor glow circles
+        radii = np.arange(15, 60, 5)
+        angles = np.linspace(0, 2*np.pi, 24)
+        r_grid, a_grid = np.meshgrid(radii, angles)
+        pts_x = (mx + r_grid * np.cos(a_grid)).astype(int).ravel()
+        pts_y = (my + r_grid * np.sin(a_grid)).astype(int).ravel()
+        pts_alpha = (0.08 * (1.0 - r_grid / 60)).ravel()
+        valid = (pts_x >= 0) & (pts_x < RW) & (pts_y >= 0) & (pts_y < RH)
+        meteor_col = np.array([255, 120, 40])
+        for c in range(3):
+            np.add.at(frame[:, :, c], (pts_y[valid], pts_x[valid]), meteor_col[c] * pts_alpha[valid])
         if tn > 0.6:
             impact_r = (tn - 0.6) * 800
             ring = np.clip(1.0 - np.abs(DIST - impact_r) / 20, 0, 1)
             frame += ring.reshape(RH, RW, 1) * np.array([200, 100, 50]) * 0.15
         if tn > 0.7:
+            np.random.seed(WORLD_SEED + wi * 100)
             for i in range(5):
-                np.random.seed(WORLD_SEED + wi * 100 + i)
                 x_start = np.random.randint(0, RW)
                 y_start = int(RH * 0.75)
-                for step in range(80):
-                    x = int(x_start + step * np.random.uniform(-2, 2))
-                    y = int(y_start + step * 2)
-                    if 0 <= x < RW and 0 <= y < RH:
-                        frame[y, x] = [80, 60, 50]
+                steps = np.arange(80)
+                cx = (x_start + np.cumsum(np.random.uniform(-2, 2, 80))).astype(int)
+                cy = (y_start + steps * 2).astype(int)
+                valid = (cx >= 0) & (cx < RW) & (cy >= 0) & (cy < RH)
+                frame[cy[valid], cx[valid]] = [80, 60, 50]
 
     elif fx_type == "sandstorm":
         wall_x = int(RW * 1.2 - tn * RW * 1.5)
+        y_range = np.arange(RH)
+        waves = (30 * np.sin(2*np.pi*tn*3 + y_range * 0.02)).astype(int)
+        x_positions = wall_x + waves
+        sand_col = np.array([180, 140, 90])
         for y in range(RH):
-            wave = int(30 * math.sin(2*np.pi*tn*3 + y*0.02))
-            x_pos = wall_x + wave
+            x_pos = x_positions[y]
             if x_pos < RW:
+                start = max(0, x_pos)
                 fade = np.clip((RW - x_pos) / 100, 0, 1)
-                frame[y, max(0, x_pos):] += np.array([180, 140, 90]) * fade * 0.25
+                frame[y, start:] += sand_col * fade * 0.25
         if math.sin(2*np.pi*tn*7) > 0.95:
             frame += np.array([230, 200, 150]) * 0.3
 
@@ -562,97 +577,122 @@ def render_bg_fx(frame, fx_type, tn, wi):
         castle_x = int(RW * 0.75)
         castle_y = int(RH * 0.70)
         shake = int(15 * math.sin(2*np.pi*tn*10))
-        for dy in range(-100 - int(tn*50), 0):
-            for dx in range(-30, 30):
-                x, y = castle_x + dx + shake, castle_y + dy + abs(shake)
-                if 0 <= x < RW and 0 <= y < RH:
-                    frame[y, x] = [25, 20, 18]
-        for r in range(10, 45, 4):
-            alpha = 0.15 * (1.0 - r/45) * (0.7 + 0.3 * math.sin(2*np.pi*tn*5))
-            for angle in np.linspace(0, 2*np.pi, 20):
-                x = int(castle_x + r * math.cos(angle))
-                y = int(castle_y - 100 + r * math.sin(angle) * 0.4)
-                if 0 <= x < RW and 0 <= y < RH:
-                    frame[y, x] += np.array([255, 140, 40]) * alpha
+        # Vectorized castle tower rectangle
+        dy_range = np.arange(-100 - int(tn*50), 0)
+        dx_range = np.arange(-30, 30)
+        dy_g, dx_g = np.meshgrid(dy_range, dx_range, indexing='ij')
+        bx = (castle_x + dx_g + shake).ravel()
+        by = (castle_y + dy_g + abs(shake)).ravel()
+        valid = (bx >= 0) & (bx < RW) & (by >= 0) & (by < RH)
+        frame[by[valid], bx[valid]] = [25, 20, 18]
+        # Vectorized fire circles
+        radii = np.arange(10, 45, 4)
+        angles = np.linspace(0, 2*np.pi, 20)
+        r_grid, a_grid = np.meshgrid(radii, angles)
+        fx_pts = (castle_x + r_grid * np.cos(a_grid)).astype(int).ravel()
+        fy_pts = (castle_y - 100 + r_grid * np.sin(a_grid) * 0.4).astype(int).ravel()
+        f_alpha = (0.15 * (1.0 - r_grid / 45) * (0.7 + 0.3 * math.sin(2*np.pi*tn*5))).ravel()
+        valid = (fx_pts >= 0) & (fx_pts < RW) & (fy_pts >= 0) & (fy_pts < RH)
+        fire_col = np.array([255, 140, 40])
+        for c in range(3):
+            np.add.at(frame[:, :, c], (fy_pts[valid], fx_pts[valid]), fire_col[c] * f_alpha[valid])
 
     elif fx_type == "tornado":
         tornado_x = int(RW * 0.3 + 50 * math.sin(2*np.pi*tn))
-        for y in range(int(RH * 0.3), RH):
-            width = int(10 + (y - RH*0.3) * 0.3)
-            spiral = int(width * math.sin(2*np.pi*tn*5 + y*0.05))
-            x_center = tornado_x + spiral
-            for dx in range(-width, width):
-                x = x_center + dx
-                if 0 <= x < RW:
-                    fade = 1.0 - abs(dx) / width
-                    frame[y, x] += np.array([140, 110, 80]) * fade * 0.20
+        y_range = np.arange(int(RH * 0.3), RH)
+        widths = (10 + (y_range - RH * 0.3) * 0.3).astype(int)
+        spirals = (widths * np.sin(2*np.pi*tn*5 + y_range * 0.05)).astype(int)
+        x_centers = tornado_x + spirals
+        tornado_col = np.array([140, 110, 80])
+        for idx, y in enumerate(y_range):
+            w_val = max(1, widths[idx])
+            xc = x_centers[idx]
+            dx = np.arange(-w_val, w_val)
+            x_arr = xc + dx
+            valid = (x_arr >= 0) & (x_arr < RW)
+            fade = (1.0 - np.abs(dx) / w_val) * 0.20
+            frame[y, x_arr[valid]] += tornado_col * fade[valid].reshape(-1, 1)
 
     elif fx_type == "arcade_screen":
         pacman_x = int((tn * RW * 2) % RW)
         pacman_y = int(RH * 0.3)
-        for r in range(2, 18):
-            for angle in np.linspace(0.3, 2*np.pi - 0.3, 20):
-                x = int(pacman_x + r * math.cos(angle))
-                y = int(pacman_y + r * math.sin(angle))
-                if 0 <= x < RW and 0 <= y < RH:
-                    frame[y, x] = [255, 255, 0]
+        # Vectorized pac-man circle
+        radii = np.arange(2, 18)
+        angles = np.linspace(0.3, 2*np.pi - 0.3, 20)
+        r_g, a_g = np.meshgrid(radii, angles)
+        px_pts = (pacman_x + r_g * np.cos(a_g)).astype(int).ravel()
+        py_pts = (pacman_y + r_g * np.sin(a_g)).astype(int).ravel()
+        valid = (px_pts >= 0) & (px_pts < RW) & (py_pts >= 0) & (py_pts < RH)
+        frame[py_pts[valid], px_pts[valid]] = [255, 255, 0]
+        # Vectorized ghosts
+        ghost_colors = [[255, 0, 0], [0, 255, 255], [255, 100, 200]]
+        radii_g = np.arange(2, 16)
+        angles_g = np.linspace(0, np.pi, 12)
+        rg_g, ag_g = np.meshgrid(radii_g, angles_g)
         for i in range(3):
-            ghost_x = int(pacman_x - 60 - i*50) % RW
-            ghost_color = [[255, 0, 0], [0, 255, 255], [255, 100, 200]][i]
-            for r in range(2, 16):
-                for angle in np.linspace(0, np.pi, 12):
-                    x = int(ghost_x + r * math.cos(angle))
-                    y = int(pacman_y + r * math.sin(angle))
-                    if 0 <= x < RW and 0 <= y < RH:
-                        frame[y, x] = ghost_color
+            ghost_x = int(pacman_x - 60 - i * 50) % RW
+            gx_pts = (ghost_x + rg_g * np.cos(ag_g)).astype(int).ravel()
+            gy_pts = (pacman_y + rg_g * np.sin(ag_g)).astype(int).ravel()
+            valid = (gx_pts >= 0) & (gx_pts < RW) & (gy_pts >= 0) & (gy_pts < RH)
+            frame[gy_pts[valid], gx_pts[valid]] = ghost_colors[i]
 
     elif fx_type == "flying_cars":
         np.random.seed(WORLD_SEED + wi * 200)
+        dy_range = np.arange(-6, 6)
+        dx_range = np.arange(-15, 15)
+        dy_g, dx_g = np.meshgrid(dy_range, dx_range, indexing='ij')
+        dy_flat, dx_flat = dy_g.ravel(), dx_g.ravel()
         for i in range(4):
             car_x = int((tn * RW * 3 + i * 200) % (RW + 100) - 50)
             car_y = int(RH * 0.2 + i * 80)
-            car_color = [255, 50, 150] if i % 2 == 0 else [0, 200, 255]
-            for dy in range(-6, 6):
-                for dx in range(-15, 15):
-                    x, y = car_x + dx, car_y + dy
-                    if 0 <= x < RW and 0 <= y < RH:
-                        frame[y, x] = car_color
-            for trail in range(30):
-                x = car_x - trail * 3
-                if 0 <= x < RW:
-                    fade = 1.0 - trail / 30
-                    frame[car_y, x] += np.array(car_color) * fade * 0.4
+            car_color = np.array([255, 50, 150] if i % 2 == 0 else [0, 200, 255])
+            bx = car_x + dx_flat
+            by = car_y + dy_flat
+            valid = (bx >= 0) & (bx < RW) & (by >= 0) & (by < RH)
+            frame[by[valid], bx[valid]] = car_color
+            # Vectorized trail
+            trail_x = car_x - np.arange(30) * 3
+            trail_valid = (trail_x >= 0) & (trail_x < RW) & (0 <= car_y < RH)
+            if np.any(trail_valid):
+                fade = (1.0 - np.arange(30) / 30)[trail_valid] * 0.4
+                frame[car_y, trail_x[trail_valid]] += car_color * fade.reshape(-1, 1)
 
     elif fx_type == "mushroom_cloud":
         cloud_x = int(RW * 0.5)
         cloud_y_base = int(RH * 0.7 - tn * 200)
-        for y in range(max(0, cloud_y_base), RH):
-            for dx in range(-20, 20):
-                x = cloud_x + dx
-                if 0 <= x < RW:
-                    frame[y, x] = [60, 50, 40]
+        # Vectorized stem
+        stem_y = np.arange(max(0, cloud_y_base), RH)
+        stem_x = np.arange(max(0, cloud_x - 20), min(RW, cloud_x + 20))
+        if len(stem_y) > 0 and len(stem_x) > 0:
+            frame[np.ix_(stem_y, stem_x)] = [60, 50, 40]
         if tn > 0.3:
             top_r = int(100 + tn * 150)
-            for r in range(10, top_r, 5):
-                alpha = 0.08 * (1.0 - r/top_r)
-                for angle in np.linspace(0, 2*np.pi, 30):
-                    x = int(cloud_x + r * math.cos(angle))
-                    y = int(cloud_y_base - 50 + r * math.sin(angle) * 0.5)
-                    if 0 <= x < RW and 0 <= y < RH:
-                        frame[y, x] += np.array([100, 80, 60]) * alpha
+            radii = np.arange(10, top_r, 5)
+            angles = np.linspace(0, 2*np.pi, 30)
+            r_g, a_g = np.meshgrid(radii, angles)
+            cx_pts = (cloud_x + r_g * np.cos(a_g)).astype(int).ravel()
+            cy_pts = (cloud_y_base - 50 + r_g * np.sin(a_g) * 0.5).astype(int).ravel()
+            c_alpha = (0.08 * (1.0 - r_g / top_r)).ravel()
+            valid = (cx_pts >= 0) & (cx_pts < RW) & (cy_pts >= 0) & (cy_pts < RH)
+            cloud_col = np.array([100, 80, 60])
+            for c in range(3):
+                np.add.at(frame[:, :, c], (cy_pts[valid], cx_pts[valid]), cloud_col[c] * c_alpha[valid])
         glow = np.clip(1.0 - DIST / (400 * (0.5 + tn)), 0, 1) ** 3
         frame += glow.reshape(RH, RW, 1) * np.array([80, 200, 60]) * 0.12
 
     elif fx_type == "wormhole":
         center_x, center_y = RW // 2, RH // 2
-        for i in range(100):
-            angle = (i / 100) * 4 * np.pi + tn * 4 * np.pi
-            r = 50 + i * 3
-            x = int(center_x + r * math.cos(angle))
-            y = int(center_y + r * math.sin(angle) * 0.6)
-            if 0 <= x < RW and 0 <= y < RH:
-                fade = 1.0 - i / 100
-                frame[y, x] += np.array([200, 220, 255]) * fade * 0.5
+        # Vectorized spiral
+        i_arr = np.arange(100)
+        w_angles = (i_arr / 100) * 4 * np.pi + tn * 4 * np.pi
+        w_radii = 50 + i_arr * 3
+        wx = (center_x + w_radii * np.cos(w_angles)).astype(int)
+        wy = (center_y + w_radii * np.sin(w_angles) * 0.6).astype(int)
+        w_fade = (1.0 - i_arr / 100) * 0.5
+        valid = (wx >= 0) & (wx < RW) & (wy >= 0) & (wy < RH)
+        worm_col = np.array([200, 220, 255])
+        for c in range(3):
+            np.add.at(frame[:, :, c], (wy[valid], wx[valid]), worm_col[c] * w_fade[valid])
         horizon_r = 80 + 30 * math.sin(2*np.pi*tn*2)
         ring = np.clip(1.0 - np.abs(DIST - horizon_r) / 15, 0, 1)
         frame += ring.reshape(RH, RW, 1) * np.array([220, 230, 255]) * 0.3
@@ -749,48 +789,72 @@ def render_frame_background(t):
     for ray_mask in GOD_RAY_MASKS:
         frame += ray_mask * w["glow_col"] * 0.06 * ray_pulse
 
-    # Environment particles with parallax depth + motion blur trails (Steps 2+7)
+    # Environment particles with parallax depth + motion blur trails (vectorized)
     ps = PSYS[wi]
-    for i in range(ps["n"]):
-        py = (ps["sy"][i] + ps["vy"][i] * tn * WORLD_DUR) % RH
-        px = (ps["sx"][i] + ps["vx"][i] * tn * WORLD_DUR) % RW
+    n = ps["n"]
 
-        s = int(ps["size"][i])
-        ix, iy = int(px), int(py)
+    # Vectorized position computation
+    py_all = (ps["sy"] + ps["vy"] * tn * WORLD_DUR) % RH
+    px_all = (ps["sx"] + ps["vx"] * tn * WORLD_DUR) % RW
+    ix_all = px_all.astype(int)
+    iy_all = py_all.astype(int)
 
-        alpha = ps["alpha"][i] * (0.6 + 0.4 * math.sin(2*np.pi*tn*3 + i))
-        ct = ps["col_t"][i]
-        col = (w["particle_colors"][0] * (1-ct) + w["particle_colors"][1] * ct) * alpha
+    # Vectorized alpha and color
+    i_arr = np.arange(n)
+    alpha_all = ps["alpha"] * (0.6 + 0.4 * np.sin(2*np.pi*tn*3 + i_arr))
+    ct = ps["col_t"]
+    col_all = (w["particle_colors"][0].reshape(1, 3) * (1 - ct.reshape(-1, 1))
+             + w["particle_colors"][1].reshape(1, 3) * ct.reshape(-1, 1)) * alpha_all.reshape(-1, 1)
 
-        y0, y1 = max(0, iy-s), min(RH, iy+s+1)
-        x0, x1 = max(0, ix-s), min(RW, ix+s+1)
+    sizes = ps["size"]
 
+    # Render size-1 particles via scatter
+    mask_s1 = sizes == 1
+    if np.any(mask_s1):
+        s1_x = np.clip(ix_all[mask_s1], 0, RW - 1)
+        s1_y = np.clip(iy_all[mask_s1], 0, RH - 1)
+        s1_col = col_all[mask_s1]
+        for c in range(3):
+            np.add.at(frame[:, :, c], (s1_y, s1_x), s1_col[:, c])
+
+    # Render size>=2 particles with soft circles
+    mask_s2 = sizes >= 2
+    idx_s2 = np.where(mask_s2)[0]
+    for i in idx_s2:
+        s = int(sizes[i])
+        ix, iy = ix_all[i], iy_all[i]
+        y0, y1 = max(0, iy - s), min(RH, iy + s + 1)
+        x0, x1 = max(0, ix - s), min(RW, ix + s + 1)
         if y0 < y1 and x0 < x1:
-            if s >= 2:
-                yl = np.arange(y0, y1).reshape(-1, 1)
-                xl = np.arange(x0, x1).reshape(1, -1)
-                d = np.sqrt((xl-ix)**2 + (yl-iy)**2)
-                m = np.clip(1.0 - d/(s+0.5), 0, 1)
-                for c in range(3):
-                    frame[y0:y1, x0:x1, c] += m * col[c]
-            else:
-                frame[y0:y1, x0:x1] += col
+            yl = np.arange(y0, y1).reshape(-1, 1)
+            xl = np.arange(x0, x1).reshape(1, -1)
+            d = np.sqrt((xl - ix)**2 + (yl - iy)**2)
+            m = np.clip(1.0 - d / (s + 0.5), 0, 1)
+            frame[y0:y1, x0:x1] += m[:, :, np.newaxis] * col_all[i]
 
-        # Motion blur trail (Step 7): draw trail in velocity direction
-        vx_i = ps["vx"][i]
-        vy_i = ps["vy"][i]
-        speed = math.sqrt(vx_i**2 + vy_i**2)
-        if speed > 30:  # Only for fast-moving particles
-            trail_len = min(5, int(speed / 40))
-            if trail_len > 0 and speed > 0:
-                dx_norm = vx_i / speed
-                dy_norm = vy_i / speed
-                for step in range(1, trail_len + 1):
-                    tx = int(ix - dx_norm * step * 2)
-                    ty = int(iy - dy_norm * step * 2)
-                    if 0 <= tx < RW and 0 <= ty < RH:
-                        trail_alpha = (1.0 - step / (trail_len + 1)) * 0.5
-                        frame[ty, tx] += col * trail_alpha
+    # Vectorized motion blur trails
+    speeds = np.sqrt(ps["vx"]**2 + ps["vy"]**2)
+    fast_mask = speeds > 30
+    if np.any(fast_mask):
+        f_ix = ix_all[fast_mask]
+        f_iy = iy_all[fast_mask]
+        f_speeds = speeds[fast_mask]
+        f_dx = ps["vx"][fast_mask] / f_speeds
+        f_dy = ps["vy"][fast_mask] / f_speeds
+        f_col = col_all[fast_mask]
+        trail_lens = np.minimum(5, (f_speeds / 40).astype(int))
+        for step in range(1, 6):
+            step_mask = trail_lens >= step
+            if not np.any(step_mask):
+                break
+            tx = (f_ix[step_mask] - (f_dx[step_mask] * step * 2).astype(int))
+            ty = (f_iy[step_mask] - (f_dy[step_mask] * step * 2).astype(int))
+            valid = (tx >= 0) & (tx < RW) & (ty >= 0) & (ty < RH)
+            if np.any(valid):
+                trail_alpha = (1.0 - step / (trail_lens[step_mask][valid] + 1)) * 0.5
+                t_col = f_col[step_mask][valid] * trail_alpha.reshape(-1, 1)
+                for c in range(3):
+                    np.add.at(frame[:, :, c], (ty[valid], tx[valid]), t_col[:, c])
 
     # Ambient occlusion - darken bottom (Step 3)
     frame *= (1.0 - AO_MASK)
@@ -880,22 +944,33 @@ def render_osd_layer(t):
         iy = py.astype(int)
         valid = (ix >= 0) & (ix < RW) & (iy >= 0) & (iy < RH)
 
-        for i in range(n):
-            if valid[i]:
-                canvas[iy[i], ix[i], :3] = dp["colors"][i]
-                canvas[iy[i], ix[i], 3] = particle_alpha * glow_alpha[i]
+        # Vectorized particle scatter
+        v_ix, v_iy = ix[valid], iy[valid]
+        v_colors = dp["colors"][valid]
+        if isinstance(particle_alpha, np.ndarray):
+            v_alpha = particle_alpha[valid] * glow_alpha[valid]
+        else:
+            v_alpha = particle_alpha * glow_alpha[valid]
+        canvas[v_iy, v_ix, :3] = v_colors
+        canvas[v_iy, v_ix, 3] = v_alpha
 
-                # Motion blur trail on explosion particles (Step 7)
-                if phase == 'explode' and prog > 0.2:
-                    trail_dx = -np.cos(angles[i]) * 3
-                    trail_dy = -np.sin(angles[i]) * 3
-                    for step in range(1, 4):
-                        tx = int(ix[i] + trail_dx * step)
-                        ty = int(iy[i] + trail_dy * step)
-                        if 0 <= tx < RW and 0 <= ty < RH:
-                            trail_a = particle_alpha * glow_alpha[i] * (1.0 - step / 4.0) * 0.5
-                            canvas[ty, tx, :3] = np.maximum(canvas[ty, tx, :3], dp["colors"][i] * 0.7)
-                            canvas[ty, tx, 3] = max(canvas[ty, tx, 3], trail_a)
+        # Vectorized motion blur trails
+        if phase == 'explode' and prog > 0.2:
+            trail_dx = -np.cos(angles) * 3
+            trail_dy = -np.sin(angles) * 3
+            for step in range(1, 4):
+                tx = (ix + trail_dx * step).astype(int)
+                ty = (iy + trail_dy * step).astype(int)
+                t_valid = (tx >= 0) & (tx < RW) & (ty >= 0) & (ty < RH)
+                if np.any(t_valid):
+                    if isinstance(particle_alpha, np.ndarray):
+                        t_alpha = particle_alpha[t_valid] * glow_alpha[t_valid] * (1.0 - step / 4.0) * 0.5
+                    else:
+                        t_alpha = particle_alpha * glow_alpha[t_valid] * (1.0 - step / 4.0) * 0.5
+                    canvas[ty[t_valid], tx[t_valid], :3] = np.maximum(
+                        canvas[ty[t_valid], tx[t_valid], :3], dp["colors"][t_valid] * 0.7)
+                    canvas[ty[t_valid], tx[t_valid], 3] = np.maximum(
+                        canvas[ty[t_valid], tx[t_valid], 3], t_alpha)
 
         # Expanding shockwave ring during teleport (Step 5)
         if phase == 'explode' and prog > 0.3:
