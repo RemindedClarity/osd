@@ -8,6 +8,10 @@ build/
 # Temp video files
 _osd_*.mp4
 
+# Blender
+frames/
+*.blend1
+
 # OS
 Thumbs.db
 .DS_Store
