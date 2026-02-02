@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Temp video files
+_osd_*.mp4
+
+# OS
+Thumbs.db
+.DS_Store
