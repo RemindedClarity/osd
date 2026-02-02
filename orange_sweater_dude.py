@@ -61,7 +61,7 @@ from PIL import Image
 # CONFIG
 # ============================================================
 WORLD_SEED     = 7
-DURATION       = 30.0
+DURATION       = 8.0
 FPS            = 30
 OSD_FILE       = "osd_character.png"
 OUTPUT         = "osd_monday.mp4"
@@ -154,7 +154,7 @@ VIGNETTE_MASK = np.clip(_vig_dist / _vig_max, 0, 1) ** 1.8
 VIGNETTE_MASK = VIGNETTE_MASK.reshape(RH, RW, 1)
 
 # Ambient occlusion (darken bottom more aggressively)
-AO_MASK = np.linspace(0.0, 0.35, RH).reshape(-1, 1, 1) ** 1.5
+AO_MASK = np.linspace(0.0, 0.20, RH).reshape(-1, 1, 1) ** 1.5
 
 # God ray angular masks (6 rays from glow center)
 GOD_RAY_MASKS = []
@@ -214,83 +214,83 @@ else:
 WORLDS = [
     {
         "name": "Jurassic Era",
-        "bg_color": np.array([18, 12, 8], dtype=np.float64),
-        "glow_col": np.array([255, 100, 40], dtype=np.float64),
+        "bg_color": np.array([55, 35, 20], dtype=np.float64),
+        "glow_col": np.array([255, 120, 40], dtype=np.float64),
         "material": "lava",
         "bg_fx": "meteor_strike",
         "camera_shake": 0.15,
-        "particles_n": 800,
-        "particle_colors": [np.array([80, 70, 60]), np.array([60, 50, 40])],
+        "particles_n": 1600,
+        "particle_colors": [np.array([255, 160, 60]), np.array([255, 80, 20])],
     },
     {
         "name": "Ancient Egypt",
-        "bg_color": np.array([35, 28, 18], dtype=np.float64),
-        "glow_col": np.array([230, 180, 100], dtype=np.float64),
+        "bg_color": np.array([100, 75, 40], dtype=np.float64),
+        "glow_col": np.array([255, 210, 120], dtype=np.float64),
         "material": "sand",
         "bg_fx": "sandstorm",
         "camera_shake": 0.10,
-        "particles_n": 750,
-        "particle_colors": [np.array([210, 180, 130]), np.array([180, 140, 90])],
+        "particles_n": 1500,
+        "particle_colors": [np.array([255, 220, 140]), np.array([240, 180, 80])],
     },
     {
         "name": "Medieval Siege",
-        "bg_color": np.array([12, 8, 6], dtype=np.float64),
-        "glow_col": np.array([255, 140, 40], dtype=np.float64),
+        "bg_color": np.array([40, 25, 15], dtype=np.float64),
+        "glow_col": np.array([255, 160, 50], dtype=np.float64),
         "material": "fire",
         "bg_fx": "castle_collapse",
         "camera_shake": 0.18,
-        "particles_n": 780,
-        "particle_colors": [np.array([255, 180, 80]), np.array([200, 100, 40])],
+        "particles_n": 1600,
+        "particle_colors": [np.array([255, 200, 80]), np.array([255, 120, 30])],
     },
     {
         "name": "Wild West",
-        "bg_color": np.array([32, 24, 16], dtype=np.float64),
-        "glow_col": np.array([220, 160, 100], dtype=np.float64),
+        "bg_color": np.array([90, 65, 40], dtype=np.float64),
+        "glow_col": np.array([240, 180, 100], dtype=np.float64),
         "material": "dust",
         "bg_fx": "tornado",
         "camera_shake": 0.12,
-        "particles_n": 820,
-        "particle_colors": [np.array([200, 170, 130]), np.array([170, 130, 90])],
+        "particles_n": 1600,
+        "particle_colors": [np.array([240, 200, 140]), np.array([220, 160, 80])],
     },
     {
         "name": "1980s Arcade",
-        "bg_color": np.array([4, 2, 12], dtype=np.float64),
+        "bg_color": np.array([15, 5, 35], dtype=np.float64),
         "glow_col": np.array([255, 0, 255], dtype=np.float64),
         "material": "pixelated",
         "bg_fx": "arcade_screen",
         "camera_shake": 0.05,
-        "particles_n": 650,
+        "particles_n": 1400,
         "particle_colors": [np.array([255, 0, 255]), np.array([0, 255, 255])],
     },
     {
         "name": "Cyberpunk 2077",
-        "bg_color": np.array([6, 4, 18], dtype=np.float64),
-        "glow_col": np.array([255, 50, 150], dtype=np.float64),
+        "bg_color": np.array([20, 10, 50], dtype=np.float64),
+        "glow_col": np.array([255, 50, 200], dtype=np.float64),
         "material": "glitch",
         "bg_fx": "flying_cars",
         "camera_shake": 0.08,
-        "particles_n": 720,
-        "particle_colors": [np.array([240, 60, 160]), np.array([0, 210, 255])],
+        "particles_n": 1500,
+        "particle_colors": [np.array([255, 60, 200]), np.array([0, 230, 255])],
     },
     {
         "name": "Nuclear Apocalypse",
-        "bg_color": np.array([8, 12, 6], dtype=np.float64),
-        "glow_col": np.array([100, 255, 80], dtype=np.float64),
+        "bg_color": np.array([25, 40, 18], dtype=np.float64),
+        "glow_col": np.array([120, 255, 80], dtype=np.float64),
         "material": "xray",
         "bg_fx": "mushroom_cloud",
         "camera_shake": 0.20,
-        "particles_n": 790,
-        "particle_colors": [np.array([140, 160, 140]), np.array([100, 120, 100])],
+        "particles_n": 1600,
+        "particle_colors": [np.array([150, 255, 100]), np.array([80, 200, 60])],
     },
     {
         "name": "Warp Speed",
-        "bg_color": np.array([2, 2, 8], dtype=np.float64),
-        "glow_col": np.array([200, 220, 255], dtype=np.float64),
+        "bg_color": np.array([8, 8, 30], dtype=np.float64),
+        "glow_col": np.array([220, 235, 255], dtype=np.float64),
         "material": "warp_stretch",
         "bg_fx": "wormhole",
         "camera_shake": 0.25,
-        "particles_n": 900,
-        "particle_colors": [np.array([240, 245, 255]), np.array([180, 200, 255])],
+        "particles_n": 1800,
+        "particle_colors": [np.array([255, 255, 255]), np.array([180, 210, 255])],
     },
 ]
 
@@ -311,14 +311,14 @@ def init_particles(wi):
     # Depth layers: 0.5x (background), 1.0x (mid), 1.5x (foreground)
     depth = np.random.choice([0.5, 1.0, 1.5], n, p=[0.35, 0.40, 0.25])
 
-    # Size scales with depth (foreground=larger)
-    base_size = np.random.choice([2, 3, 3, 4, 4, 5], n).astype(np.float64)
-    size = np.round(base_size * (0.6 + depth * 0.4)).astype(int)
-    size = np.clip(size, 1, 7)
+    # Size scales with depth (foreground=larger, up to 10px)
+    base_size = np.random.choice([3, 4, 5, 6, 7, 8, 9, 10], n).astype(np.float64)
+    size = np.round(base_size * (0.5 + depth * 0.5)).astype(int)
+    size = np.clip(size, 2, 10)
 
-    # Alpha scales with depth (foreground=brighter)
-    base_alpha = np.random.uniform(0.5, 1.0, n)
-    alpha = base_alpha * (0.4 + depth * 0.4)
+    # Alpha scales with depth (foreground=brighter, overall brighter)
+    base_alpha = np.random.uniform(0.7, 1.0, n)
+    alpha = base_alpha * (0.5 + depth * 0.5)
 
     # Velocity scales with depth
     base_vx = np.random.uniform(-60, 60, n)
@@ -530,172 +530,251 @@ def render_bg_fx(frame, fx_type, tn, wi):
     """Render cinematic background effects."""
 
     if fx_type == "meteor_strike":
-        mx = int(RW * 0.75 - tn * RW * 0.5)
-        my = int(tn * RH * 0.6)
-        # Vectorized meteor glow circles
-        radii = np.arange(15, 60, 5)
-        angles = np.linspace(0, 2*np.pi, 24)
-        r_grid, a_grid = np.meshgrid(radii, angles)
-        pts_x = (mx + r_grid * np.cos(a_grid)).astype(int).ravel()
-        pts_y = (my + r_grid * np.sin(a_grid)).astype(int).ravel()
-        pts_alpha = (0.08 * (1.0 - r_grid / 60)).ravel()
-        valid = (pts_x >= 0) & (pts_x < RW) & (pts_y >= 0) & (pts_y < RH)
-        meteor_col = np.array([255, 120, 40])
-        for c in range(3):
-            np.add.at(frame[:, :, c], (pts_y[valid], pts_x[valid]), meteor_col[c] * pts_alpha[valid])
+        # LARGE VOLCANO SILHOUETTE (right third of frame)
+        volcano_cx = int(RW * 0.75)
+        volcano_base_y = int(RH * 0.65)
+        volcano_peak_y = int(RH * 0.30)
+        for y in range(volcano_peak_y, RH):
+            t_y = (y - volcano_peak_y) / max(1, RH - volcano_peak_y)
+            half_w = int(10 + t_y * 160)
+            x0 = max(0, volcano_cx - half_w)
+            x1 = min(RW, volcano_cx + half_w)
+            frame[y, x0:x1] = np.array([30, 15, 10])
+        # Glowing lava at crater
+        crater_glow = np.clip(1.0 - np.sqrt((_xx - volcano_cx)**2 + (_yy - volcano_peak_y)**2) / 80, 0, 1) ** 1.5
+        frame += crater_glow.reshape(RH, RW, 1) * np.array([255, 100, 20]) * 1.5
+        # Lava streams down sides
+        for stream in range(3):
+            np.random.seed(WORLD_SEED + wi * 100 + stream)
+            sx = volcano_cx + np.random.randint(-30, 30)
+            for y in range(volcano_peak_y + 20, volcano_base_y):
+                sx += np.random.randint(-2, 3)
+                sx = max(0, min(RW - 1, sx))
+                for dx in range(-3, 4):
+                    px = sx + dx
+                    if 0 <= px < RW:
+                        fade = 1.0 - abs(dx) / 4
+                        frame[y, px] += np.array([255, 80, 10]) * fade * 0.8
+        # Meteor
+        mx = int(RW * 0.3 - tn * RW * 0.2)
+        my = int(tn * RH * 0.5)
+        meteor_glow = np.clip(1.0 - np.sqrt((_xx - mx)**2 + (_yy - my)**2) / 50, 0, 1) ** 2
+        frame += meteor_glow.reshape(RH, RW, 1) * np.array([255, 180, 60]) * 2.0
         if tn > 0.6:
             impact_r = (tn - 0.6) * 800
-            ring = np.clip(1.0 - np.abs(DIST - impact_r) / 20, 0, 1)
-            frame += ring.reshape(RH, RW, 1) * np.array([200, 100, 50]) * 0.15
-        if tn > 0.7:
-            np.random.seed(WORLD_SEED + wi * 100)
-            for i in range(5):
-                x_start = np.random.randint(0, RW)
-                y_start = int(RH * 0.75)
-                steps = np.arange(80)
-                cx = (x_start + np.cumsum(np.random.uniform(-2, 2, 80))).astype(int)
-                cy = (y_start + steps * 2).astype(int)
-                valid = (cx >= 0) & (cx < RW) & (cy >= 0) & (cy < RH)
-                frame[cy[valid], cx[valid]] = [80, 60, 50]
+            ring = np.clip(1.0 - np.abs(DIST - impact_r) / 25, 0, 1)
+            frame += ring.reshape(RH, RW, 1) * np.array([255, 120, 50]) * 0.5
 
     elif fx_type == "sandstorm":
+        # LARGE PYRAMID SILHOUETTE (center-right)
+        pyr_cx = int(RW * 0.6)
+        pyr_base_y = int(RH * 0.72)
+        pyr_peak_y = int(RH * 0.28)
+        pyr_base_half = 140
+        for y in range(pyr_peak_y, pyr_base_y):
+            t_y = (y - pyr_peak_y) / max(1, pyr_base_y - pyr_peak_y)
+            half_w = int(t_y * pyr_base_half)
+            x0 = max(0, pyr_cx - half_w)
+            x1 = min(RW, pyr_cx + half_w)
+            frame[y, x0:x1] = np.array([60, 45, 25])
+        # Sun disk behind pyramid
+        sun_cx, sun_cy = int(RW * 0.55), int(RH * 0.22)
+        sun_glow = np.clip(1.0 - np.sqrt((_xx - sun_cx)**2 + (_yy - sun_cy)**2) / 120, 0, 1) ** 1.2
+        frame += sun_glow.reshape(RH, RW, 1) * np.array([255, 200, 80]) * 2.5
+        # Sandstorm wall
         wall_x = int(RW * 1.2 - tn * RW * 1.5)
         y_range = np.arange(RH)
         waves = (30 * np.sin(2*np.pi*tn*3 + y_range * 0.02)).astype(int)
         x_positions = wall_x + waves
-        sand_col = np.array([180, 140, 90])
+        sand_col = np.array([240, 190, 100])
         for y in range(RH):
             x_pos = x_positions[y]
             if x_pos < RW:
                 start = max(0, x_pos)
                 fade = np.clip((RW - x_pos) / 100, 0, 1)
-                frame[y, start:] += sand_col * fade * 0.25
-        if math.sin(2*np.pi*tn*7) > 0.95:
-            frame += np.array([230, 200, 150]) * 0.3
+                frame[y, start:] += sand_col * fade * 0.5
+        if math.sin(2*np.pi*tn*7) > 0.9:
+            frame += np.array([255, 220, 150]) * 0.4
 
     elif fx_type == "castle_collapse":
-        castle_x = int(RW * 0.75)
-        castle_y = int(RH * 0.70)
-        shake = int(15 * math.sin(2*np.pi*tn*10))
-        # Vectorized castle tower rectangle
-        dy_range = np.arange(-100 - int(tn*50), 0)
-        dx_range = np.arange(-30, 30)
-        dy_g, dx_g = np.meshgrid(dy_range, dx_range, indexing='ij')
-        bx = (castle_x + dx_g + shake).ravel()
-        by = (castle_y + dy_g + abs(shake)).ravel()
-        valid = (bx >= 0) & (bx < RW) & (by >= 0) & (by < RH)
-        frame[by[valid], bx[valid]] = [25, 20, 18]
-        # Vectorized fire circles
-        radii = np.arange(10, 45, 4)
-        angles = np.linspace(0, 2*np.pi, 20)
-        r_grid, a_grid = np.meshgrid(radii, angles)
-        fx_pts = (castle_x + r_grid * np.cos(a_grid)).astype(int).ravel()
-        fy_pts = (castle_y - 100 + r_grid * np.sin(a_grid) * 0.4).astype(int).ravel()
-        f_alpha = (0.15 * (1.0 - r_grid / 45) * (0.7 + 0.3 * math.sin(2*np.pi*tn*5))).ravel()
-        valid = (fx_pts >= 0) & (fx_pts < RW) & (fy_pts >= 0) & (fy_pts < RH)
-        fire_col = np.array([255, 140, 40])
-        for c in range(3):
-            np.add.at(frame[:, :, c], (fy_pts[valid], fx_pts[valid]), fire_col[c] * f_alpha[valid])
+        # LARGE CASTLE SILHOUETTE (right side, with towers)
+        castle_base_y = int(RH * 0.65)
+        shake = int(8 * math.sin(2*np.pi*tn*10))
+        # Main wall
+        wall_x0 = int(RW * 0.45) + shake
+        wall_x1 = int(RW * 0.95) + shake
+        for y in range(int(RH * 0.40), RH):
+            x0 = max(0, wall_x0)
+            x1 = min(RW, wall_x1)
+            if x0 < x1:
+                frame[y, x0:x1] = np.array([35, 25, 20])
+        # Left tower
+        tower_x = int(RW * 0.48) + shake
+        for y in range(int(RH * 0.25), castle_base_y):
+            for dx in range(-20, 20):
+                px = tower_x + dx
+                if 0 <= px < RW:
+                    frame[y, px] = [40, 30, 25]
+        # Right tower
+        tower_x2 = int(RW * 0.85) + shake
+        for y in range(int(RH * 0.30), castle_base_y):
+            for dx in range(-25, 25):
+                px = tower_x2 + dx
+                if 0 <= px < RW:
+                    frame[y, px] = [35, 28, 22]
+        # Large fire glow at base
+        fire_cx, fire_cy = int(RW * 0.65), int(RH * 0.55)
+        fire_glow = np.clip(1.0 - np.sqrt((_xx - fire_cx)**2 + (_yy - fire_cy)**2) / 150, 0, 1) ** 1.5
+        flicker = 0.7 + 0.3 * math.sin(2*np.pi*tn*6)
+        frame += fire_glow.reshape(RH, RW, 1) * np.array([255, 140, 30]) * 2.0 * flicker
+        # Smoke clouds above
+        for cloud_i in range(4):
+            np.random.seed(WORLD_SEED + wi * 50 + cloud_i)
+            cloud_cx = int(RW * 0.5 + np.random.uniform(-100, 150))
+            cloud_cy = int(RH * 0.25 + np.random.uniform(-50, 50))
+            cloud_r = 60 + np.random.randint(0, 40)
+            cloud_mask = np.clip(1.0 - np.sqrt((_xx - cloud_cx)**2 + (_yy - cloud_cy)**2) / cloud_r, 0, 1)
+            frame += cloud_mask.reshape(RH, RW, 1) * np.array([80, 60, 50]) * 0.4
 
     elif fx_type == "tornado":
         tornado_x = int(RW * 0.3 + 50 * math.sin(2*np.pi*tn))
-        y_range = np.arange(int(RH * 0.3), RH)
-        widths = (10 + (y_range - RH * 0.3) * 0.3).astype(int)
-        spirals = (widths * np.sin(2*np.pi*tn*5 + y_range * 0.05)).astype(int)
+        y_range = np.arange(int(RH * 0.2), RH)
+        widths = (8 + (y_range - RH * 0.2) * 0.35).astype(int)
+        spirals = (widths * math.sin(2*np.pi*tn*5) * np.sin(y_range * 0.05)).astype(int)
         x_centers = tornado_x + spirals
-        tornado_col = np.array([140, 110, 80])
+        tornado_col = np.array([200, 160, 100])
         for idx, y in enumerate(y_range):
             w_val = max(1, widths[idx])
             xc = x_centers[idx]
             dx = np.arange(-w_val, w_val)
             x_arr = xc + dx
             valid = (x_arr >= 0) & (x_arr < RW)
-            fade = (1.0 - np.abs(dx) / w_val) * 0.20
+            fade = (1.0 - np.abs(dx) / w_val) * 0.5
             frame[y, x_arr[valid]] += tornado_col * fade[valid].reshape(-1, 1)
+        # Debris flying around tornado
+        np.random.seed(WORLD_SEED + wi * 300 + int(tn * 10))
+        for d in range(15):
+            angle = tn * 8 + d * 0.6
+            r = 80 + d * 15
+            dx = int(tornado_x + r * math.cos(angle))
+            dy = int(RH * 0.5 + r * math.sin(angle) * 0.4)
+            if 0 <= dx < RW and 0 <= dy < RH:
+                frame[max(0,dy-2):min(RH,dy+3), max(0,dx-2):min(RW,dx+3)] += np.array([180, 140, 80]) * 0.6
 
     elif fx_type == "arcade_screen":
+        # Bigger pac-man and ghosts, neon grid background
+        # Neon grid lines
+        for gx in range(0, RW, 40):
+            if gx < RW:
+                frame[:, max(0,gx):min(RW,gx+1)] += np.array([40, 0, 60])
+        for gy in range(0, RH, 40):
+            if gy < RH:
+                frame[max(0,gy):min(RH,gy+1), :] += np.array([40, 0, 60])
         pacman_x = int((tn * RW * 2) % RW)
         pacman_y = int(RH * 0.3)
-        # Vectorized pac-man circle
-        radii = np.arange(2, 18)
-        angles = np.linspace(0.3, 2*np.pi - 0.3, 20)
-        r_g, a_g = np.meshgrid(radii, angles)
-        px_pts = (pacman_x + r_g * np.cos(a_g)).astype(int).ravel()
-        py_pts = (pacman_y + r_g * np.sin(a_g)).astype(int).ravel()
-        valid = (px_pts >= 0) & (px_pts < RW) & (py_pts >= 0) & (py_pts < RH)
-        frame[py_pts[valid], px_pts[valid]] = [255, 255, 0]
-        # Vectorized ghosts
-        ghost_colors = [[255, 0, 0], [0, 255, 255], [255, 100, 200]]
-        radii_g = np.arange(2, 16)
-        angles_g = np.linspace(0, np.pi, 12)
-        rg_g, ag_g = np.meshgrid(radii_g, angles_g)
+        # Big pac-man
+        pac_glow = np.clip(1.0 - np.sqrt((_xx - pacman_x)**2 + (_yy - pacman_y)**2) / 30, 0, 1)
+        # Mouth cutout
+        mouth_angle = np.arctan2(_yy - pacman_y, _xx - pacman_x)
+        mouth_open = 0.4 * (0.5 + 0.5 * math.sin(2*np.pi*tn*8))
+        mouth_mask = (np.abs(mouth_angle) < mouth_open) & (_xx > pacman_x)
+        pac_glow[mouth_mask] = 0
+        frame += pac_glow.reshape(RH, RW, 1) * np.array([255, 255, 0]) * 1.5
+        # Big ghosts
+        ghost_colors = [np.array([255, 30, 30]), np.array([0, 255, 255]), np.array([255, 100, 220])]
         for i in range(3):
-            ghost_x = int(pacman_x - 60 - i * 50) % RW
-            gx_pts = (ghost_x + rg_g * np.cos(ag_g)).astype(int).ravel()
-            gy_pts = (pacman_y + rg_g * np.sin(ag_g)).astype(int).ravel()
-            valid = (gx_pts >= 0) & (gx_pts < RW) & (gy_pts >= 0) & (gy_pts < RH)
-            frame[gy_pts[valid], gx_pts[valid]] = ghost_colors[i]
+            ghost_x = int(pacman_x - 80 - i * 60) % RW
+            g_glow = np.clip(1.0 - np.sqrt((_xx - ghost_x)**2 + (_yy - pacman_y)**2) / 25, 0, 1)
+            frame += g_glow.reshape(RH, RW, 1) * ghost_colors[i] * 1.2
 
     elif fx_type == "flying_cars":
+        # NEON CITYSCAPE SILHOUETTE
         np.random.seed(WORLD_SEED + wi * 200)
-        dy_range = np.arange(-6, 6)
-        dx_range = np.arange(-15, 15)
-        dy_g, dx_g = np.meshgrid(dy_range, dx_range, indexing='ij')
-        dy_flat, dx_flat = dy_g.ravel(), dx_g.ravel()
-        for i in range(4):
-            car_x = int((tn * RW * 3 + i * 200) % (RW + 100) - 50)
-            car_y = int(RH * 0.2 + i * 80)
-            car_color = np.array([255, 50, 150] if i % 2 == 0 else [0, 200, 255])
-            bx = car_x + dx_flat
-            by = car_y + dy_flat
-            valid = (bx >= 0) & (bx < RW) & (by >= 0) & (by < RH)
-            frame[by[valid], bx[valid]] = car_color
-            # Vectorized trail
-            trail_x = car_x - np.arange(30) * 3
-            trail_valid = (trail_x >= 0) & (trail_x < RW) & (0 <= car_y < RH)
-            if np.any(trail_valid):
-                fade = (1.0 - np.arange(30) / 30)[trail_valid] * 0.4
+        # Skyline of buildings
+        bld_heights = [0.35, 0.45, 0.55, 0.40, 0.60, 0.50, 0.42, 0.55, 0.38, 0.48,
+                       0.52, 0.44, 0.58, 0.36, 0.46]
+        bld_width = RW // len(bld_heights)
+        for bi, bh in enumerate(bld_heights):
+            x0 = bi * bld_width
+            x1 = x0 + bld_width - 2
+            y_top = int(RH * (1.0 - bh))
+            # Dark building body
+            frame[y_top:RH, x0:x1] = np.array([15, 8, 25])
+            # Glowing windows
+            for wy in range(y_top + 5, RH - 10, 12):
+                for wx in range(x0 + 4, x1 - 4, 8):
+                    if np.random.random() < 0.6:
+                        win_col = np.array([255, 50, 200]) if np.random.random() < 0.5 else np.array([0, 200, 255])
+                        wy0, wy1 = max(0, wy), min(RH, wy + 6)
+                        wx0, wx1 = max(0, wx), min(RW, wx + 5)
+                        frame[wy0:wy1, wx0:wx1] += win_col * 0.4
+        # Neon reflections on ground
+        ground_y = int(RH * 0.82)
+        if ground_y < RH:
+            reflection = frame[ground_y-20:ground_y, :, :].copy()
+            ref_h = min(reflection.shape[0], RH - ground_y)
+            frame[ground_y:ground_y+ref_h, :] += np.flip(reflection[:ref_h], axis=0) * 0.3
+        # Flying cars with bright trails
+        for i in range(6):
+            car_x = int((tn * RW * 3 + i * 150) % (RW + 100) - 50)
+            car_y = int(RH * 0.15 + i * 60)
+            car_color = np.array([255, 50, 200] if i % 2 == 0 else [0, 220, 255])
+            cy0, cy1 = max(0, car_y - 4), min(RH, car_y + 4)
+            cx0, cx1 = max(0, car_x - 12), min(RW, car_x + 12)
+            if cy0 < cy1 and cx0 < cx1:
+                frame[cy0:cy1, cx0:cx1] = car_color
+            # Bright trail
+            trail_x = car_x - np.arange(40) * 3
+            trail_valid = (trail_x >= 0) & (trail_x < RW)
+            if np.any(trail_valid) and 0 <= car_y < RH:
+                fade = (1.0 - np.arange(40) / 40)[trail_valid] * 0.7
                 frame[car_y, trail_x[trail_valid]] += car_color * fade.reshape(-1, 1)
 
     elif fx_type == "mushroom_cloud":
         cloud_x = int(RW * 0.5)
-        cloud_y_base = int(RH * 0.7 - tn * 200)
-        # Vectorized stem
+        cloud_y_base = int(RH * 0.6 - tn * 150)
+        # Large stem
+        stem_half = 30
         stem_y = np.arange(max(0, cloud_y_base), RH)
-        stem_x = np.arange(max(0, cloud_x - 20), min(RW, cloud_x + 20))
+        stem_x = np.arange(max(0, cloud_x - stem_half), min(RW, cloud_x + stem_half))
         if len(stem_y) > 0 and len(stem_x) > 0:
-            frame[np.ix_(stem_y, stem_x)] = [60, 50, 40]
+            frame[np.ix_(stem_y, stem_x)] = [80, 60, 40]
+        # Large mushroom cap
+        cap_r = int(120 + tn * 100)
+        cap_glow = np.clip(1.0 - np.sqrt((_xx - cloud_x)**2 + ((_yy - cloud_y_base + 30) * 1.8)**2) / cap_r, 0, 1) ** 1.2
+        frame += cap_glow.reshape(RH, RW, 1) * np.array([180, 120, 60]) * 1.5
+        # Bright radioactive glow
+        glow = np.clip(1.0 - DIST / (400 * (0.5 + tn)), 0, 1) ** 2
+        frame += glow.reshape(RH, RW, 1) * np.array([100, 255, 80]) * 0.5
+        # Expanding shockwave
         if tn > 0.3:
-            top_r = int(100 + tn * 150)
-            radii = np.arange(10, top_r, 5)
-            angles = np.linspace(0, 2*np.pi, 30)
-            r_g, a_g = np.meshgrid(radii, angles)
-            cx_pts = (cloud_x + r_g * np.cos(a_g)).astype(int).ravel()
-            cy_pts = (cloud_y_base - 50 + r_g * np.sin(a_g) * 0.5).astype(int).ravel()
-            c_alpha = (0.08 * (1.0 - r_g / top_r)).ravel()
-            valid = (cx_pts >= 0) & (cx_pts < RW) & (cy_pts >= 0) & (cy_pts < RH)
-            cloud_col = np.array([100, 80, 60])
-            for c in range(3):
-                np.add.at(frame[:, :, c], (cy_pts[valid], cx_pts[valid]), cloud_col[c] * c_alpha[valid])
-        glow = np.clip(1.0 - DIST / (400 * (0.5 + tn)), 0, 1) ** 3
-        frame += glow.reshape(RH, RW, 1) * np.array([80, 200, 60]) * 0.12
+            shock_r = (tn - 0.3) * 600
+            ring = np.clip(1.0 - np.abs(DIST - shock_r) / 15, 0, 1)
+            frame += ring.reshape(RH, RW, 1) * np.array([200, 255, 150]) * 0.6
 
     elif fx_type == "wormhole":
-        center_x, center_y = RW // 2, RH // 2
-        # Vectorized spiral
-        i_arr = np.arange(100)
-        w_angles = (i_arr / 100) * 4 * np.pi + tn * 4 * np.pi
-        w_radii = 50 + i_arr * 3
-        wx = (center_x + w_radii * np.cos(w_angles)).astype(int)
-        wy = (center_y + w_radii * np.sin(w_angles) * 0.6).astype(int)
-        w_fade = (1.0 - i_arr / 100) * 0.5
-        valid = (wx >= 0) & (wx < RW) & (wy >= 0) & (wy < RH)
-        worm_col = np.array([200, 220, 255])
-        for c in range(3):
-            np.add.at(frame[:, :, c], (wy[valid], wx[valid]), worm_col[c] * w_fade[valid])
+        center_x, center_y = RW // 2, int(RH * 0.4)
+        # Large wormhole glow
+        worm_dist = np.sqrt((_xx - center_x)**2 + (_yy - center_y)**2)
+        worm_glow = np.clip(1.0 - worm_dist / 200, 0, 1) ** 1.5
+        frame += worm_glow.reshape(RH, RW, 1) * np.array([150, 180, 255]) * 2.0
+        # Spiral arms
+        i_arr = np.arange(200)
+        w_angles = (i_arr / 200) * 6 * np.pi + tn * 4 * np.pi
+        w_radii = 20 + i_arr * 2
+        w_fade = (1.0 - i_arr / 200) * 1.5
+        for arm in range(3):
+            arm_offset = arm * 2 * np.pi / 3
+            wx = (center_x + w_radii * np.cos(w_angles + arm_offset)).astype(int)
+            wy = (center_y + w_radii * np.sin(w_angles + arm_offset) * 0.6).astype(int)
+            valid = (wx >= 0) & (wx < RW) & (wy >= 0) & (wy < RH)
+            worm_col = np.array([220, 235, 255])
+            for c in range(3):
+                np.add.at(frame[:, :, c], (wy[valid], wx[valid]), worm_col[c] * w_fade[valid])
+        # Event horizon ring
         horizon_r = 80 + 30 * math.sin(2*np.pi*tn*2)
-        ring = np.clip(1.0 - np.abs(DIST - horizon_r) / 15, 0, 1)
-        frame += ring.reshape(RH, RW, 1) * np.array([220, 230, 255]) * 0.3
+        ring = np.clip(1.0 - np.abs(worm_dist - horizon_r) / 10, 0, 1)
+        frame += ring.reshape(RH, RW, 1) * np.array([255, 255, 255]) * 0.8
 
 
 # ============================================================
@@ -772,22 +851,22 @@ def render_frame_background(t):
     frame = np.empty((RH, RW, 3), dtype=np.float64)
     frame[:] = w["bg_color"]
 
-    # Background gradient
-    y_blend = np.linspace(0, 0.18, RH).reshape(-1, 1, 1)
-    frame += y_blend * w["glow_col"] * 0.55
+    # Background gradient (brighter)
+    y_blend = np.linspace(0, 0.35, RH).reshape(-1, 1, 1)
+    frame += y_blend * w["glow_col"] * 1.2
 
     # Cinematic BG effects
     render_bg_fx(frame, w["bg_fx"], tn, wi)
 
-    # Glow around OSD position
+    # Glow around OSD position (5x brighter)
     pulse = 0.70 + 0.30 * math.sin(2*np.pi*tn*2)
-    g1 = np.clip(1.0 - DIST / (280 * pulse), 0, 1) ** 2.0
-    frame += g1.reshape(RH, RW, 1) * w["glow_col"] * 0.25
+    g1 = np.clip(1.0 - DIST / (350 * pulse), 0, 1) ** 1.5
+    frame += g1.reshape(RH, RW, 1) * w["glow_col"] * 1.25
 
-    # God rays from glow center (Step 3)
+    # God rays from glow center (brighter)
     ray_pulse = 0.5 + 0.5 * math.sin(2*np.pi*tn*1.2)
     for ray_mask in GOD_RAY_MASKS:
-        frame += ray_mask * w["glow_col"] * 0.06 * ray_pulse
+        frame += ray_mask * w["glow_col"] * 0.18 * ray_pulse
 
     # Environment particles with parallax depth + motion blur trails (vectorized)
     ps = PSYS[wi]
@@ -859,8 +938,8 @@ def render_frame_background(t):
     # Ambient occlusion - darken bottom (Step 3)
     frame *= (1.0 - AO_MASK)
 
-    # Vignette - darken corners (Step 3)
-    frame *= (1.0 - VIGNETTE_MASK * 0.45)
+    # Vignette - darken corners (reduced to keep brightness)
+    frame *= (1.0 - VIGNETTE_MASK * 0.25)
 
     # Camera effects
     phase, prog = teleport_phase(t)
